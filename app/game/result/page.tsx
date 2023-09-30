@@ -10,7 +10,7 @@ import {
 } from "@/src/store/slices/question-slices";
 import { Button } from "@material-tailwind/react";
 import { useRouter } from "next/navigation";
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 
 const Result = () => {
   const route = useRouter();

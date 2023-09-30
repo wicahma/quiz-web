@@ -1,9 +1,8 @@
-import { Button, Radio } from "@material-tailwind/react";
-import React, { use, useEffect, useMemo, useState } from "react";
+import { Radio } from "@material-tailwind/react";
+import { useEffect, useState } from "react";
 import {
   IQuestionComp,
-  IQuestionResult,
-  IShowAnswer,
+  IShowAnswer
 } from "../interfaces/intf-question";
 
 const QuestionContainer = ({

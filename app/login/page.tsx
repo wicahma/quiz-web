@@ -10,7 +10,6 @@ import {
 import { Button, Card, CardBody, Input } from "@material-tailwind/react";
 import { Form, Formik } from "formik";
 import { useRouter } from "next/navigation";
-import React from "react";
 
 const Login = () => {
   const route = useRouter();

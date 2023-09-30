@@ -1,10 +1,10 @@
+"use client";
 import { combineReducers, configureStore } from "@reduxjs/toolkit";
-import { useDispatch, TypedUseSelectorHook, useSelector } from "react-redux";
-import { authReducer } from "./slices/auth-slices";
-import logger from "redux-logger";
-import { questionReducer } from "./slices/question-slices";
-import { mainReducer } from "./slices/main-slices";
+import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
 import { IQuestState } from "../interfaces/intf-store";
+import { authReducer } from "./slices/auth-slices";
+import { mainReducer } from "./slices/main-slices";
+import { questionReducer } from "./slices/question-slices";
 
 const combinedReducer = combineReducers({
   main: mainReducer,

@@ -1,6 +1,5 @@
 "use client";
 import { Spinner } from "@material-tailwind/react";
-import React from "react";
 import { useAppSelector } from "../store";
 
 const LoadingSpin = () => {

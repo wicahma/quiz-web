@@ -4,8 +4,7 @@ import { IQuestionResult } from "@/src/interfaces/intf-question";
 import { useAppDispatch, useAppSelector } from "@/src/store";
 import {
   setGame,
-  setResetGame,
-  setTime,
+  setTime
 } from "@/src/store/slices/question-slices";
 import {
   Button,
@@ -15,7 +14,7 @@ import {
   PopoverHandler,
 } from "@material-tailwind/react";
 import { useRouter } from "next/navigation";
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { setInterval } from "timers";
 
 const Game = () => {
