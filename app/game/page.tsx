@@ -59,6 +59,7 @@ const Game = () => {
   }, [qIndex, question]);
 
   const checkAnswer = () => {
+    let game: any = { qTrueAnswer, qTotal, qIndex };
     setResultQuestion((prev) => ({
       ...prev,
       trueAnswer: question[qIndex].correct_answer,
@@ -67,16 +68,15 @@ const Game = () => {
     txt.innerHTML = question[qIndex].correct_answer.toString();
 
     if (resultQuestion.selectedAnswer === txt.value) {
-      setTimeout(() => {
-        dispatch(setGame({ qTrueAnswer: qTrueAnswer + 1, qTotal, qIndex }));
-      }, 1500);
+      game = { ...game, qTrueAnswer: qTrueAnswer + 1 };
     }
 
     setTimeout(() => {
+      game = { ...game, qIndex: qIndex + 1 };
       if (qIndex + 1 >= qTotal) {
         return route.push("/game/result");
       }
-      dispatch(setGame({ qTrueAnswer, qTotal, qIndex: qIndex + 1 }));
+      dispatch(setGame(game));
 
       setResultQuestion({
         trueAnswer: "",
