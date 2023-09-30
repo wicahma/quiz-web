@@ -1,113 +1,284 @@
-import Image from 'next/image'
+"use client";
+import Fetcher from "@/src/api";
+import { ICustomGame } from "@/src/interfaces/intf-question";
+import { useAppDispatch, useAppSelector } from "@/src/store";
+import { setLoading, setPeringatan } from "@/src/store/slices/main-slices";
+import {
+  setGame,
+  setPrevUrl,
+  setQuestion,
+  setResetGame,
+} from "@/src/store/slices/question-slices";
+import {
+  Button,
+  Input,
+  Menu,
+  MenuHandler,
+  MenuList,
+  Option,
+  Popover,
+  PopoverContent,
+  PopoverHandler,
+  Select,
+  Tooltip,
+} from "@material-tailwind/react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export default function Home() {
+  const route = useRouter();
+  const isValid = useAppSelector((state) => state.auth.isAuth);
+  const [menuPopup, setMenuPopup] = useState(false);
+  const dispatch = useAppDispatch();
+  const {
+    game: { qTotal, qIndex },
+    qTime,
+  } = useAppSelector((state) => state.question);
+  const [categories, setCategories] = useState<Array<any>>([]);
+  const [amount, setAmount] = useState<number>(10);
+  const [category, setCategory] = useState<number>();
+  const [difficulty, setDifficulty] = useState<string>("");
+  const [type, setType] = useState<string>("");
+
+  useEffect(() => {
+    if (!isValid) {
+      route.replace("/login");
+    }
+    getCategories();
+  }, [isValid, route]);
+
+  const getCategories = async () => {
+    try {
+      const f = new Fetcher();
+      await f.getData({
+        url: "/api_category.php",
+      });
+      if (!f.isOK) {
+        return dispatch(
+          setPeringatan({
+            show: true,
+            message: "Terjadi kesalahan saat ingin memulai quiz",
+            type: "error",
+          })
+        );
+      }
+      setCategories(f.data.trivia_categories);
+    } catch (e) {
+      console.log(e);
+    }
+  };
+
+  const handleStartGame = async () => {
+    dispatch(setResetGame());
+    dispatch(setLoading(true));
+    try {
+      const f = new Fetcher();
+      await f.getData({
+        url: "/api.php",
+        params: "amount=10",
+      });
+      if (!f.isOK)
+        return dispatch(
+          setPeringatan({
+            show: true,
+            message: "Terjadi kesalahan saat ingin memulai quiz",
+            type: "error",
+          })
+        );
+      dispatch(
+        setGame({
+          qTrueAnswer: 0,
+          qIndex: 0,
+          qTotal: f.data.results.length,
+        })
+      );
+      dispatch(setPrevUrl("amount=10"));
+      dispatch(setQuestion(f.data.results));
+      route.push("/game");
+    } catch (e) {
+      console.log(e);
+    } finally {
+      dispatch(setLoading(false));
+    }
+  };
+
+  const handleStartCustomGame = async ({
+    amount,
+    category,
+    difficulty,
+    type,
+  }: ICustomGame) => {
+    dispatch(setResetGame());
+    dispatch(setLoading(true));
+    try {
+      let params = "";
+      if (amount) params += `amount=${amount}&`;
+      if (category) params += `category=${category}&`;
+      if (difficulty) params += `difficulty=${difficulty}&`;
+      if (type) params += `type=${type}`;
+      const f = new Fetcher();
+      await f.getData({
+        url: "/api.php",
+        params: params,
+      });
+      if (!f.isOK)
+        return dispatch(
+          setPeringatan({
+            show: true,
+            message: `Terjadi kesalahan saat ingin memulai quiz - {rc0d-${f.data.response_code}}`,
+            type: "error",
+          })
+        );
+      dispatch(
+        setGame({
+          qTrueAnswer: 0,
+          qIndex: 0,
+          qTotal: f.data.results.length,
+        })
+      );
+      dispatch(setPrevUrl(params));
+      dispatch(setQuestion(f.data.results));
+      route.push("/game");
+    } catch (e) {
+      console.log(e);
+    } finally {
+      dispatch(setLoading(false));
+    }
+  };
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">app/page.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:h-auto lg:w-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{' '}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
+    <main className="container flex flex-col items-center justify-center h-screen mx-auto">
+      <Button
+        color="red"
+        onClick={() => {
+          dispatch({ type: "user/logout", payload: false });
+          route.replace("/login");
+        }}
+        className="m-3 flex items-center gap-3 px-4 py-2 self-end"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          strokeWidth="1.5"
+          stroke="currentColor"
+          className="w-6 h-6"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75"
+          />
+        </svg>
+        Keluar
+      </Button>
+      <div className="grow flex items-center justify-center flex-col">
+        <header className="text-start mb-20">
+          <h1 className="text-6xl font-bold bg-black text-white">Kuisis.</h1>
+          <h3>Let&apos;s test how smart are you</h3>
+        </header>
+        <div className="text-center space-y-4">
+          <div className="flex gap-3 justify-center">
+            <Button type="button" variant="outlined" onClick={handleStartGame}>
+              Start new game
+            </Button>
+            {!(
+              qTime === undefined ||
+              qTime === null ||
+              "00:00".includes(qTime?.toString()) ||
+              qIndex + 1 === qTotal
+            ) && (
+              <Tooltip
+                content={`${qTime?.split(":")[0]} minute ${
+                  qTime?.split(":")[1]
+                } second left, ${qIndex} answered from ${qTotal}`}
+              >
+                <Button
+                  type="button"
+                  variant="outlined"
+                  onClick={() => {
+                    route.push("/game");
+                  }}
+                >
+                  Resume
+                </Button>
+              </Tooltip>
+            )}
+          </div>
+          <p className="text-xs font-bold">OR</p>
+          <Popover open={menuPopup} handler={setMenuPopup}>
+            <PopoverHandler>
+              <Button variant="outlined">Customize your level</Button>
+            </PopoverHandler>
+            <PopoverContent className="overflow-visible space-y-3">
+              <h3 className="text-2xl text-black font-semibold">
+                Set your own Quiz
+              </h3>
+              <Input
+                crossOrigin={""}
+                label="Number of question"
+                value={amount}
+                onChange={(e) =>
+                  setAmount(
+                    parseInt("".includes(e.target.value) ? "0" : e.target.value)
+                  )
+                }
+              />
+              <Select
+                label="Category"
+                onChange={(e) => setCategory(parseInt(e ?? "0"))}
+                selected={() => {
+                  if (category === 0) return "None";
+                  return category
+                    ? categories.find((c) => c.id === category)?.name
+                    : null;
+                }}
+              >
+                <Option value={"0"}>None</Option>
+                {categories.length > 0 ? (
+                  categories.map((category, index) => (
+                    <Option key={index} value={category.id.toString()}>
+                      {category.name}
+                    </Option>
+                  ))
+                ) : (
+                  <Option disabled>Loading...</Option>
+                )}
+              </Select>
+              <Select
+                label="Difficulty"
+                onChange={(e) => setDifficulty(e !== undefined ? e : "none")}
+              >
+                <Option>None</Option>
+                <Option value="easy">Easy</Option>
+                <Option value="medium">Medium</Option>
+                <Option value="hard">Hard</Option>
+              </Select>
+              <Select
+                label="Type"
+                onChange={(e) => setType(e !== undefined ? e : "none")}
+              >
+                <Option>None</Option>
+                <Option value="boolean">True / False</Option>
+                <Option value="multiple">Multiple Choice</Option>
+              </Select>
+              <Button
+                className="w-full"
+                onClick={() =>
+                  handleStartCustomGame({
+                    amount,
+                    category,
+                    difficulty,
+                    type,
+                  })
+                }
+              >
+                Start
+              </Button>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
-
-      <div className="relative flex place-items-center before:absolute before:h-[300px] before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 before:lg:h-[360px] z-[-1]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className="mb-32 grid text-center lg:max-w-5xl lg:w-full lg:mb-0 lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Docs{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Learn{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Templates{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Explore the Next.js 13 playground.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Deploy{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
     </main>
-  )
+  );
 }
