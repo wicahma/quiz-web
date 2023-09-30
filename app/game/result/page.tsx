@@ -19,8 +19,12 @@ const Result = () => {
     game: { qTrueAnswer, qTotal, qIndex },
     qTime,
   } = useAppSelector((state) => state.question);
+  const isValid = useAppSelector((state) => state.auth.isAuth);
 
   useEffect(() => {
+    if (!isValid) {
+      route.replace("/login");
+    }
     if (
       qTime === undefined ||
       qTime === null ||

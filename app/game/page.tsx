@@ -2,10 +2,7 @@
 import QuestionContainer from "@/src/components/question-container";
 import { IQuestionResult } from "@/src/interfaces/intf-question";
 import { useAppDispatch, useAppSelector } from "@/src/store";
-import {
-  setGame,
-  setTime
-} from "@/src/store/slices/question-slices";
+import { setGame, setTime } from "@/src/store/slices/question-slices";
 import {
   Button,
   IconButton,
@@ -15,7 +12,6 @@ import {
 } from "@material-tailwind/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { setInterval } from "timers";
 
 const Game = () => {
   const route = useRouter();
@@ -25,6 +21,7 @@ const Game = () => {
     qTime,
   } = useAppSelector((state) => state.question);
   const timerInit = 60 + qTotal * 30;
+  const [counter, setCounter] = useState(timerInit);
   const [resultQuestion, setResultQuestion] = useState<IQuestionResult>({
     selectedAnswer: "",
     trueAnswer: "",
@@ -36,14 +33,22 @@ const Game = () => {
   useEffect(() => {
     if (!isValid) {
       route.replace("/login");
-      return;
+    }
+    if (question.length <= 0) {
+      route.replace("/");
     }
   }, [isValid, route]);
 
+  useEffect(() => {
+    if (qTime !== null && "00:00".includes(qTime.toString())) {
+      route.push("/game/result");
+    }
+  }, [qTime, route, dispatch]);
+
   const shuffleAnswer = useMemo(() => {
     const answers = [
-      question[qIndex].correct_answer,
-      ...question[qIndex].incorrect_answers,
+      question[qIndex]?.correct_answer,
+      ...(question[qIndex]?.incorrect_answers ?? []),
     ];
     for (let i = answers.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -52,49 +57,6 @@ const Game = () => {
 
     return answers;
   }, [qIndex, question]);
-
-  const startTimer = (e: Date) => {
-    const total = Date.parse(e.toString()) - Date.parse(Date());
-    const seconds = Math.floor((total / 1000) % 60);
-    const minutes = Math.floor((total / 1000 / 60) % 60);
-
-    if (seconds >= 0 && minutes >= 0) {
-      dispatch(
-        setTime(
-          `${minutes.toString().padStart(2, "0")}:${seconds
-            .toString()
-            .padStart(2, "0")}`
-        )
-      );
-    }
-  };
-
-  const clearTimer = () => {
-    const now = new Date();
-
-    const historyTimer = localStorage.getItem("qTime");
-    if (
-      historyTimer === null ||
-      historyTimer === undefined ||
-      historyTimer === "00:00"
-    ) {
-      now.setSeconds(now.getSeconds() + timerInit);
-    } else {
-      const timeComponents = historyTimer.split(":");
-      const minutes = parseInt(timeComponents[0]);
-      const seconds = parseInt(timeComponents[1]);
-      const totalTimeInSeconds = minutes * 60 + seconds;
-      now.setSeconds(now.getSeconds() + totalTimeInSeconds);
-    }
-
-    setInterval(() => {
-      if ("/game" === window.location.pathname) startTimer(now);
-    }, 1000);
-  };
-
-  useEffect(() => {
-    clearTimer();
-  }, []);
 
   const checkAnswer = () => {
     setResultQuestion((prev) => ({
@@ -123,18 +85,55 @@ const Game = () => {
     }, 1500);
   };
 
-  useEffect(() => {
-    if (qTime !== null && "00:00".includes(qTime.toString())) {
-      route.push("/game/result");
+  const startTimers = (e: number) => {
+    const seconds = Math.floor(e % 60);
+    const minutes = Math.floor((e / 60) % 60);
+
+    if (e >= 0) {
+      setCounter(e);
+      dispatch(
+        setTime(
+          `${minutes.toString().padStart(2, "0")}:${seconds
+            .toString()
+            .padStart(2, "0")}`
+        )
+      );
     }
-  }, [qTime, route, dispatch]);
+  };
+
+  const clearTimers = () => {
+    let time = counter;
+    const historyTimer = localStorage.getItem("qTime");
+    if (
+      historyTimer === null ||
+      historyTimer === undefined ||
+      historyTimer === "00:00"
+    ) {
+      time = timerInit;
+    } else {
+      const timeComponents = historyTimer.split(":");
+      const minutes = parseInt(timeComponents[0]);
+      const seconds = parseInt(timeComponents[1]);
+      const totalTimeInSeconds = minutes * 60 + seconds;
+      time = totalTimeInSeconds;
+    }
+    startTimers(time - 1);
+  };
+
+  useEffect(() => {
+    const timer =
+      "/game" === window.location.pathname &&
+      counter > 0 &&
+      setTimeout(() => clearTimers(), 1000);
+    return () => clearTimeout(timer as NodeJS.Timeout);
+  }, [counter]);
 
   return (
     <div className="container mx-auto h-screen flex flex-col px-3">
       <div className="w-full flex justify-center gap-3 mt-5 text-base font-medium text-white uppercase">
         <div className="bg-gray-700 p-2 flex gap-3 items-center rounded-2xl">
           <p className="bg-blue-500 px-5 py-1 ml-1 rounded-md text-white">
-            {question[qIndex].difficulty}
+            {question[qIndex]?.difficulty ?? "None"}
           </p>
           <p className="bg-blue-500 px-5 py-1 rounded-md text-white">{qTime}</p>
           <Popover handler={setExitDialog} open={exitDialog}>
@@ -184,16 +183,18 @@ const Game = () => {
       </div>
 
       <div className="grow mx-auto flex flex-col justify-center">
-        <QuestionContainer
-          index={qIndex + 1}
-          answer={shuffleAnswer ?? [""]}
-          question={question[qIndex].question}
-          category={question[qIndex].category}
-          selectedAnswer={(e: String) =>
-            setResultQuestion((prev) => ({ ...prev, selectedAnswer: e }))
-          }
-          result={resultQuestion}
-        />
+        {question.length > 0 && (
+          <QuestionContainer
+            index={qIndex + 1}
+            answer={shuffleAnswer ?? [""]}
+            question={question[qIndex].question}
+            category={question[qIndex].category}
+            selectedAnswer={(e: String) =>
+              setResultQuestion((prev) => ({ ...prev, selectedAnswer: e }))
+            }
+            result={resultQuestion}
+          />
+        )}
         <div className="mt-5 flex w-full justify-end">
           <Button
             onClick={checkAnswer}

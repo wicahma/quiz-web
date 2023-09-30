@@ -17,7 +17,7 @@ import {
   PopoverContent,
   PopoverHandler,
   Select,
-  Tooltip
+  Tooltip,
 } from "@material-tailwind/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -182,8 +182,7 @@ export default function Home() {
             {!(
               qTime === undefined ||
               qTime === null ||
-              "00:00".includes(qTime?.toString()) ||
-              qIndex + 1 === qTotal
+              "00:00".includes(qTime?.toString())
             ) && (
               <Tooltip
                 content={`${qTime?.split(":")[0]} minute ${
